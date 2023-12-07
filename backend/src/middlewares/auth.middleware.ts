@@ -3,7 +3,8 @@ import { verify } from 'jsonwebtoken';
 import { SECRET_KEY } from '@config';
 import { HttpException } from '@exceptions/httpException';
 import { DataStoredInToken, RequestWithUser } from '@interfaces/auth.interface';
-import { UserModel } from '@models/users.model';
+import Container from 'typedi';
+import { UsersRepository } from '@/repository/user.repository';
 
 const getAuthorization = req => {
   const coockie = req.cookies['Authorization'];
@@ -16,12 +17,13 @@ const getAuthorization = req => {
 };
 
 export const AuthMiddleware = async (req: RequestWithUser, res: Response, next: NextFunction) => {
+  const usersRepository = Container.get(UsersRepository);
   try {
     const Authorization = getAuthorization(req);
 
     if (Authorization) {
       const { id } = (await verify(Authorization, SECRET_KEY)) as DataStoredInToken;
-      const findUser = UserModel.find(user => user.id === id);
+      const findUser = await usersRepository.findOne(id);
 
       if (findUser) {
         req.user = findUser;
